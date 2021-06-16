@@ -11,3 +11,12 @@ for classification task.
 ## Architecture
 ![](images/architecture.png)
 
+## Citations
+```bibtex
+@article{tolstikhin2021,
+  title={MLP-Mixer: An all-MLP Architecture for Vision},
+  author={Tolstikhin, Ilya and Houlsby, Neil and Kolesnikov, Alexander and Beyer, Lucas and Zhai, Xiaohua and Unterthiner, Thomas and Yung, Jessica and Keysers, Daniel and Uszkoreit, Jakob and Lucic, Mario and Dosovitskiy, Alexey},
+  journal={arXiv preprint arXiv:2105.01601},
+  year={2021}
+}
+```

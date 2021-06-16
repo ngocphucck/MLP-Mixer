@@ -6,10 +6,10 @@ from module import MLPMixerBlock
 
 
 class MLPMixer(nn.Module):
-    def __init__(self, image_shape, in_channels, patch_shape, depth, dim, num_classes):
+    def __init__(self, image_shape, patch_shape, depth, dim, num_classes):
         super(MLPMixer, self).__init__()
         self.image_shape = image_shape
-        self.in_channels = in_channels
+        self.in_channels = 3
         self.patch_shape = patch_shape
         self.depth = depth
         self.num_classes = num_classes
