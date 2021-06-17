@@ -5,15 +5,12 @@ from tqdm import tqdm
 
 import torch
 from torch.utils.data import DataLoader
-from torchsummary import summary
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
-
 
 from model.mlp_mixer import MLPMixer
 from dataset import DogBreedDataset
 from utils.schedule_utils import CosineWarmUpScheduler, LinearWarmUpScheduler
-
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +22,9 @@ def setup(args):
     if args.checkpoint is not None:
         model.load_state_dict(torch.load(args.checkpoint))
 
-    model.to(args.device)
+    model = model.to(args.device)
 
     logger.info("Training parameters %s", args)
-    summary(model, (3, args.image_shape[0], args.image_shape[1]))
 
     return args, model
 
@@ -52,14 +48,14 @@ def train(args, model):
     train_loader, val_loader = get_loader(args)
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.decay)
 
-    if args.schedule == 'cosine':
+    if args.scheduler == 'cosine':
         scheduler = CosineWarmUpScheduler(optimizer=optimizer, warmup_steps=args.warmup_steps,
                                           t_total=args.num_steps)
     else:
         scheduler = LinearWarmUpScheduler(optimizer=optimizer, warmup_steps=args.warmup_steps,
                                           t_total=args.num_steps)
 
-    loss_fn = CrossEntropyLoss()
+    loss_fn = CrossEntropyLoss().to(args.device)
 
     logger.info("*****************************Training phase*********************************")
     logger.info("Total optimization step = %d", args.num_steps)
@@ -72,20 +68,25 @@ def train(args, model):
                               dynamic_ncols=True,
                               disable=args.local_rank not in [-1, 0])
 
-        for step, batch in epoch_iterator:
+        for batch in epoch_iterator:
             optimizer.zero_grad()
-            batch = (t.to(args.device) for t in batch)
+
             input_tensor, label_tensor = batch
 
+            input_tensor = input_tensor.to(args.device)
+            label_tensor = label_tensor.to(args.device)
+
             predict_tensor = model(input_tensor)
+
             loss = loss_fn(predict_tensor, label_tensor)
+
             loss.backward()
 
-            scheduler.step()
             optimizer.step()
+            scheduler.step()
 
             epoch_iterator.set_description(
-                "Training (%d / %d Steps) (loss=%2.5f)" % (epoch, args.num_steps, loss.items())
+                "Training (%d / %d Steps) (loss=%2.5f)" % (epoch, args.num_steps, loss.item())
             )
 
         logger.info("Training complete!")
@@ -108,13 +109,14 @@ def main():
                         help='Path to save checkpoint (default: output/)')
     parser.add_argument("--batch_size", type=int, default=16, help='Number of images in each batch (default: 16)')
     parser.add_argument("--lr", type=float, default=1e-3, help='Learning rate (default: 1e-3)')
-    parser.add_argument("--momentum", type=float, default=0.9, help='Momentum (default: 0,9)')
+    parser.add_argument("--momentum", type=float, default=0.9, help='Momentum (default: 0.9)')
     parser.add_argument("--decay", type=float, default=0, help='Weight decay (default: 0)')
     parser.add_argument("--num_steps", type=int, default=30, help='Number of epochs (default: 30)')
-    parser.add_argument("--warmup_step", type=int, default=10,
+    parser.add_argument("--warmup_steps", type=int, default=10,
                         help='Number of epoch for warmup learning rate (default: 10)')
     parser.add_argument("--scheduler", type=str, choices=["cosine", "linear"],
                         default='cosine', help='Scheduler for warmup learning rate (default: cosine)')
+    parser.add_argument("--local_rank", type=int, default=-1, help='Local rank for bar')
 
     args = parser.parse_args()
 

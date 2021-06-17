@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize
 import json
 import cv2
+import torch
 
 
 class DogBreedDataset(Dataset):
@@ -12,7 +13,9 @@ class DogBreedDataset(Dataset):
 
         self.transforms = Compose([
             ToTensor(),
-            Resize((224, 224))
+            Resize((256, 256)),
+            Normalize([0.5, 0.5, 0.5],
+                      [0.5, 0.5, 0.5])
         ])
 
     def __getitem__(self, item):
@@ -21,6 +24,7 @@ class DogBreedDataset(Dataset):
         image = self.transforms(image)
 
         label = self.annotation[item][1]
+        label = torch.tensor(label, dtype=torch.long)
 
         return image, label
 
@@ -31,5 +35,5 @@ class DogBreedDataset(Dataset):
 
 if __name__ == '__main__':
     dataset = DogBreedDataset(annotation_path='data/train.json')
-    print(dataset[0][0].shape)
+    print(dataset[0][1])
     pass
