@@ -93,7 +93,7 @@ def train(args, model):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Implementation of MLP Mixer"
+        description="Training process"
     )
     parser.add_argument("--image_shape", type=tuple, default=(256, 256),
                         help='Image shape for training (default: (256, 256))')
@@ -115,3 +115,15 @@ def main():
                         help='Number of epoch for warmup learning rate (default: 10)')
     parser.add_argument("--scheduler", type=str, choices=["cosine", "linear"],
                         default='cosine', help='Scheduler for warmup learning rate (default: cosine)')
+
+    args = parser.parse_args()
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    args.device = device
+
+    args, model = setup(args)
+    train(args, model)
+
+
+if __name__ == '__main__':
+    main()

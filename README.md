@@ -11,6 +11,48 @@ for classification task.
 ## Architecture
 ![](images/architecture.png)
 
+## Training 
+```bash
+$ python train.py --help
+
+usage: train.py [-h] [--image_shape IMAGE_SHAPE] [--patch_shape PATCH_SHAPE]
+                [--depth DEPTH] [--dim DIM] [--num_classes NUM_CLASSES]
+                [--checkpoint CHECKPOINT] [--output_dir OUTPUT_DIR]
+                [--batch_size BATCH_SIZE] [--lr LR] [--momentum MOMENTUM]
+                [--decay DECAY] [--num_steps NUM_STEPS]
+                [--warmup_step WARMUP_STEP] [--scheduler {cosine,linear}]
+
+Training process
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --image_shape IMAGE_SHAPE
+                        Image shape for training (default: (256, 256))
+  --patch_shape PATCH_SHAPE
+                        Patch shape for splitting (default: (16, 16))
+  --depth DEPTH         Depth of model (default: 6)
+  --dim DIM             Dim for each mlp mixer block (default: 512)
+  --num_classes NUM_CLASSES
+                        Number of classes for classification (default: 120)
+  --checkpoint CHECKPOINT
+                        Path to checkpoint (default: None)
+  --output_dir OUTPUT_DIR
+                        Path to save checkpoint (default: output/)
+  --batch_size BATCH_SIZE
+                        Number of images in each batch (default: 16)
+  --lr LR               Learning rate (default: 1e-3)
+  --momentum MOMENTUM   Momentum (default: 0,9)
+  --decay DECAY         Weight decay (default: 0)
+  --num_steps NUM_STEPS
+                        Number of epochs (default: 30)
+  --warmup_step WARMUP_STEP
+                        Number of epoch for warmup learning rate (default: 10)
+  --scheduler {cosine,linear}
+                        Scheduler for warmup learning rate (default: cosine)
+
+
+```
+
 ## Citations
 ```bibtex
 @article{tolstikhin2021,
