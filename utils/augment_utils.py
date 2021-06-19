@@ -162,7 +162,7 @@ class ToTensor(object):
     def __call__(self, image):
         image = np.array(image).astype(float)
         image = image / 255
-        image = torch.from_numpy(image)
+        image = torch.from_numpy(image).float()
         image = image.permute(2, 0, 1)
 
         return image

@@ -7,6 +7,8 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
+from torch.nn.utils import clip_grad_norm_
+
 
 from model.mlp_mixer import MLPMixer
 from dataset import DogBreedDataset
@@ -44,6 +46,40 @@ def get_loader(args):
     return train_loader, val_loader
 
 
+def val(args, model, val_loader):
+    loss_fn = CrossEntropyLoss().to(args.device)
+
+    logger.info("*****************************Validation phase*********************************")
+    model.val()
+
+    epoch_iterator = tqdm(val_loader,
+                          desc="Training (X / X Steps) (loss=X.X)",
+                          bar_format="{l_bar}{r_bar}",
+                          dynamic_ncols=True,
+                          disable=args.local_rank not in [-1, 0])
+
+    val_loss = []
+    for id, batch in enumerate(epoch_iterator):
+        input_tensor, label_tensor = batch
+
+        input_tensor = input_tensor.to(args.device)
+        label_tensor = label_tensor.to(args.device)
+
+        predict_tensor = model(input_tensor)
+
+        loss = loss_fn(predict_tensor, label_tensor)
+        val_loss.append(loss)
+        epoch_iterator.set_description(
+            "Validation (batch %d) (loss=%2.5f)" % (id, loss.item())
+        )
+
+    logger.info(
+        "Validation loss = %2.5f" % (sum(val_loss) / len(val_loss))
+    )
+
+    return sum(val_loss) / len(val_loss)
+
+
 def train(args, model):
     train_loader, val_loader = get_loader(args)
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.decay)
@@ -60,6 +96,7 @@ def train(args, model):
     logger.info("*****************************Training phase*********************************")
     logger.info("Total optimization step = %d", args.num_steps)
 
+    best_val = 100
     for epoch in range(args.num_steps):
         model.train()
         epoch_iterator = tqdm(train_loader,
@@ -81,6 +118,7 @@ def train(args, model):
             loss = loss_fn(predict_tensor, label_tensor)
 
             loss.backward()
+            clip_grad_norm_(model.parameters(), max_norm=2)
 
             optimizer.step()
             scheduler.step()
@@ -89,7 +127,13 @@ def train(args, model):
                 "Training (%d / %d Steps) (loss=%2.5f)" % (epoch, args.num_steps, loss.item())
             )
 
-        logger.info("Training complete!")
+        val_loss = val(args, model, val_loader)
+
+        if val_loss < best_val:
+            best_val = val_loss
+            save_model(args, model)
+            logger.info("Save model")
+    logger.info("Training complete!")
 
 
 def main():
@@ -117,6 +161,7 @@ def main():
     parser.add_argument("--scheduler", type=str, choices=["cosine", "linear"],
                         default='cosine', help='Scheduler for warmup learning rate (default: cosine)')
     parser.add_argument("--local_rank", type=int, default=-1, help='Local rank for bar')
+    parser.add_argument("--name", type=str, default='mlp_mixer', help='Name of the model')
 
     args = parser.parse_args()
 
